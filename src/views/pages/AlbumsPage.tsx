@@ -24,6 +24,21 @@ export default function AlbumsPage() {
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">Albums for {userId}</h2>
+      <form className="mt-2 space-y-2 r">
+        <input
+          type="text"
+          placeholder="New album title"
+          value={"as"}
+          //onChange={(e) => setNewAlbumTitle(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Create New Album
+        </button>
+      </form>
       {albums?.map((album) => (
         <div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
