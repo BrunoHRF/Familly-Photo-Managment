@@ -1,62 +1,58 @@
-import React, { useState } from 'react'
-import { useMutation, useQueryClient } from 'react-query'
+import React, { useState } from "react";
+import { useMutation, useQueryClient } from "react-query";
+import AlbumList from "./AlbumList";
 
 interface Photo {
-  id: number
-  title: string
-  url: string
-  thumbnailUrl: string
-  albumId: number
-}
-
-interface Album {
-  id: number
-  title: string
+  id: number;
+  title: string;
+  url: string;
+  thumbnailUrl: string;
+  albumId: number;
 }
 
 const createPhoto = async (newPhoto: Partial<Photo>): Promise<Photo> => {
-  const response = await fetch('http://localhost:3001/api/photos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const response = await fetch("http://localhost:3001/api/photos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(newPhoto),
-  })
+  });
   if (!response.ok) {
-    throw new Error('Failed to create photo')
+    throw new Error("Failed to create photo");
   }
-  return response.json()
-}
+  return response.json();
+};
 
 export default function AddPhoto() {
-  const [newPhotoTitle, setNewPhotoTitle] = useState('')
-  const [newPhotoDescription, setNewPhotoDescription] = useState('')
-  const [newPhotoAlbum, setNewPhotoAlbum] = useState('')
-  const queryClient = useQueryClient()
+  const [newPhotoTitle, setNewPhotoTitle] = useState("");
+  const [newPhotoDescription, setNewPhotoDescription] = useState("");
+  const [newPhotoAlbum, setNewPhotoAlbum] = useState("");
+  const queryClient = useQueryClient();
 
   const createPhotoMutation = useMutation(createPhoto, {
     onSuccess: (newPhoto) => {
-      queryClient.setQueryData<Photo[]>(['photos', newPhoto.albumId], (oldPhotos) => [
-        ...(oldPhotos ?? []),
-        newPhoto,
-      ])
-      setNewPhotoTitle('')
-      setNewPhotoDescription('')
-      setNewPhotoAlbum('')
+      queryClient.setQueryData<Photo[]>(
+        ["photos", newPhoto.albumId],
+        (oldPhotos) => [...(oldPhotos ?? []), newPhoto]
+      );
+      setNewPhotoTitle("");
+      setNewPhotoDescription("");
+      setNewPhotoAlbum("");
     },
     onError: (error: Error) => {
-      console.error('Failed to add photo:', error)
+      console.error("Failed to add photo:", error);
     },
-  })
+  });
 
   const handleAddPhoto = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newPhotoAlbum) return
+    e.preventDefault();
+    if (!newPhotoAlbum) return;
     createPhotoMutation.mutate({
       title: newPhotoTitle,
       albumId: parseInt(newPhotoAlbum),
-      url: '/placeholder.svg?height=200&width=200',
-      thumbnailUrl: '/placeholder.svg?height=100&width=100'
-    })
-  }
+      url: "/placeholder.svg?height=200&width=200",
+      thumbnailUrl: "/placeholder.svg?height=100&width=100",
+    });
+  };
 
   return (
     <div>
@@ -82,10 +78,15 @@ export default function AddPhoto() {
           className="w-full p-2 border rounded"
         >
           <option value="">Select album</option>
-          {/* You would need to fetch albums here or pass them as props */}
+          <AlbumList />
         </select>
-        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">Add Photo</button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Add Photo
+        </button>
       </form>
     </div>
-  )
+  );
 }
