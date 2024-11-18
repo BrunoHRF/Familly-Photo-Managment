@@ -1,97 +1,63 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useQuery } from "react-query";
 
-export interface Album {
+interface Photo {
   id: number;
   title: string;
-  userId: number;
+  url: string;
+  thumbnailUrl: string;
+  albumId: number;
 }
 
-interface User {
+interface Album {
   id: number;
-  name: string;
+  title: string;
 }
 
-const createAlbum = async (newAlbum: Partial<Album>): Promise<Album> => {
-  const response = await fetch("http://localhost:3001/api/albums", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newAlbum),
-  });
+const fetchPhotos = async (albumId: number): Promise<Photo[]> => {
+  const response = await fetch(
+    `http://localhost:3001/api/albums/${albumId}/photos`
+  );
   if (!response.ok) {
-    throw new Error("Failed to create album");
+    throw new Error("Failed to fetch photos");
   }
   return response.json();
 };
 
-export default function AlbumList() {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newAlbumTitle, setNewAlbumTitle] = useState("");
-  const queryClient = useQueryClient();
+export default function PhotoList() {
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
 
   const {
-    data: albums,
+    data: photos,
     isLoading,
     error,
-  } = useQuery<Album[], Error>(
-    ["albums", selectedUser?.id],
-    () => fetchAlbums(selectedUser?.id ?? 0),
-    { enabled: !!selectedUser }
+  } = useQuery<Photo[], Error>(
+    ["photos", selectedAlbum?.id],
+    () => fetchPhotos(selectedAlbum?.id ?? 0),
+    { enabled: !!selectedAlbum }
   );
 
-  const createAlbumMutation = useMutation(createAlbum, {
-    onSuccess: (newAlbum) => {
-      queryClient.setQueryData<Album[]>(
-        ["albums", selectedUser?.id],
-        (oldAlbums) => [...(oldAlbums ?? []), newAlbum]
-      );
-      setNewAlbumTitle("");
-    },
-    onError: (error: Error) => {
-      console.error("Failed to create album:", error);
-    },
-  });
-
-  const handleCreateAlbum = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUser || !newAlbumTitle.trim()) return;
-    createAlbumMutation.mutate({
-      title: newAlbumTitle,
-      userId: selectedUser.id,
-    });
-  };
-
-  if (!selectedUser) return <p>Please select a user first.</p>;
-  if (isLoading) return <div>Loading albums...</div>;
-  if (error) return <div>Error fetching albums: {error.message}</div>;
+  if (!selectedAlbum) return <p>Please select an album first.</p>;
+  if (isLoading) return <div>Loading photos...</div>;
+  if (error) return <div>Error fetching photos: {error.message}</div>;
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">
-        Albums for {selectedUser.name}
+        Photos in {selectedAlbum.title}
       </h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {albums?.map((album) => (
-          <div key={album.id} className="border p-4 rounded-lg shadow-sm">
-            <h3 className="font-bold">{album.title}</h3>
+        {photos?.map((photo) => (
+          <div key={photo.id} className="border p-4 rounded-lg shadow-sm">
+            <img
+              src={photo.thumbnailUrl}
+              alt={photo.title}
+              className="w-full h-40 object-cover mb-2 rounded-md"
+            />
+            <p className="font-semibold">{photo.title}</p>
           </div>
         ))}
       </div>
-      <form onSubmit={handleCreateAlbum} className="mt-4 space-y-4">
-        <input
-          type="text"
-          placeholder="New album title"
-          value={newAlbumTitle}
-          onChange={(e) => setNewAlbumTitle(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Create New Album
-        </button>
-      </form>
     </div>
   );
 }

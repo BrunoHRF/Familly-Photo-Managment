@@ -1,6 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "react-query";
-import { Album } from "./AlbumList";
 
 interface Photo {
   id: number;
@@ -8,6 +7,11 @@ interface Photo {
   url: string;
   thumbnailUrl: string;
   albumId: number;
+}
+
+interface Album {
+  id: number;
+  title: string;
 }
 
 const fetchPhotos = async (albumId: number): Promise<Photo[]> => {

@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { useQuery } from "react-query";
 
 interface User {
   id: number;
@@ -21,7 +20,7 @@ export default function UserList() {
     data: users,
     isLoading,
     error,
-  } = useQuery({ queryKey: ["users"], queryFn: fetchUsers });
+  } = useQuery<User[], Error>("users", fetchUsers);
 
   if (isLoading) return <div>Loading users...</div>;
   if (error) return <div>Error fetching users: {error.message}</div>;
@@ -31,13 +30,11 @@ export default function UserList() {
       <h2 className="text-xl font-semibold mb-2">Users</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {users?.map((user) => (
-          <Link to={`/albums/${user.id}`}>
-            <div key={user.id} className="border p-4 rounded-lg shadow-sm">
-              <h3 className="font-bold">{user.name}</h3>
-              <p className="text-sm text-gray-600">{user.email}</p>
-              <p className="text-sm text-gray-600">@{user.username}</p>
-            </div>
-          </Link>
+          <div key={user.id} className="border p-4 rounded-lg shadow-sm">
+            <h3 className="font-bold">{user.name}</h3>
+            <p className="text-sm text-gray-600">{user.email}</p>
+            <p className="text-sm text-gray-600">@{user.username}</p>
+          </div>
         ))}
       </div>
     </div>

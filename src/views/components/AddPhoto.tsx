@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "react-query";
-import AlbumList from "./AlbumList";
 
 interface Photo {
   id: number;
@@ -8,6 +7,11 @@ interface Photo {
   url: string;
   thumbnailUrl: string;
   albumId: number;
+}
+
+interface Album {
+  id: number;
+  title: string;
 }
 
 const createPhoto = async (newPhoto: Partial<Photo>): Promise<Photo> => {
@@ -78,7 +82,7 @@ export default function AddPhoto() {
           className="w-full p-2 border rounded"
         >
           <option value="">Select album</option>
-          <AlbumList />
+          {/* You would need to fetch albums here or pass them as props */}
         </select>
         <button
           type="submit"
