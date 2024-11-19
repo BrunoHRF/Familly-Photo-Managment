@@ -1,4 +1,5 @@
-import { useQuery } from "react-query";
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "react-query";
 
 interface Album {
   id: number;
@@ -11,7 +12,7 @@ interface AlbumListProps {
   onAlbumSelect: (albumId: number, albumTitle: string) => void;
 }
 
-const fetchAlbums = async (userId: number): Promise<Album[]> => {
+export const fetchAlbums = async (userId: number): Promise<Album[]> => {
   const response = await fetch(
     `http://localhost:3001/api/users/${userId}/albums`
   );
@@ -21,7 +22,30 @@ const fetchAlbums = async (userId: number): Promise<Album[]> => {
   return response.json();
 };
 
+export const deleteAlbum = async (albumId: number): Promise<void> => {
+  const response = await fetch(`http://localhost:3001/api/albums/${albumId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete album");
+  }
+};
+
+export const updateAlbum = async (album: Album): Promise<Album> => {
+  const response = await fetch(`http://localhost:3001/api/albums/${album.id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(album),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update album");
+  }
+  return response.json();
+};
+
 export default function AlbumList({ userId, onAlbumSelect }: AlbumListProps) {
+  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  const queryClient = useQueryClient();
   const {
     data: albums,
     isLoading,
@@ -30,21 +54,97 @@ export default function AlbumList({ userId, onAlbumSelect }: AlbumListProps) {
     enabled: !!userId,
   });
 
+  const deleteMutation = useMutation(deleteAlbum, {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["albums", userId]);
+    },
+  });
+
+  const updateMutation = useMutation(updateAlbum, {
+    onSuccess: () => {
+      queryClient.invalidateQueries(["albums", userId]);
+      setEditingAlbum(null);
+    },
+  });
+
   if (isLoading) return <div>Loading albums...</div>;
   if (error) return <div>Error fetching albums: {error.message}</div>;
+
+  const handleEdit = (album: Album) => {
+    setEditingAlbum(album);
+  };
+
+  const handleDelete = (albumId: number) => {
+    if (window.confirm("Are you sure you want to delete this album?")) {
+      deleteMutation.mutate(albumId);
+    }
+  };
+
+  const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (editingAlbum) {
+      updateMutation.mutate(editingAlbum);
+    }
+  };
 
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">Albums for User {userId}</h2>
       {albums && albums.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {albums.map((album) => (
-            <div
-              key={album.id}
-              className="border p-4 rounded-lg shadow-sm cursor-pointer hover:bg-gray-100"
-              onClick={() => onAlbumSelect(album.id, album.title)}
-            >
-              <h3 className="font-bold">{album.title}</h3>
+          {albums?.map((album) => (
+            <div key={album.id} className="border p-4 rounded-lg shadow-sm">
+              {editingAlbum && editingAlbum.id === album.id ? (
+                <form onSubmit={handleUpdate} className="space-y-2">
+                  <input
+                    type="text"
+                    value={editingAlbum.title}
+                    onChange={(e) =>
+                      setEditingAlbum({
+                        ...editingAlbum,
+                        title: e.target.value,
+                      })
+                    }
+                    className="w-full p-1 border rounded"
+                  />
+                  <button
+                    type="submit"
+                    className="px-2 py-1 bg-green-500 text-white rounded"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingAlbum(null)}
+                    className="px-2 py-1 bg-gray-500 text-white rounded ml-2"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <h3 className="font-bold">{album.title}</h3>
+                  <div className="mt-2 space-x-2">
+                    <button
+                      onClick={() => onAlbumSelect(album.id, album.title)}
+                      className="px-2 py-1 bg-blue-500 text-white rounded"
+                    >
+                      Photos
+                    </button>
+                    <button
+                      onClick={() => handleEdit(album)}
+                      className="px-2 py-1 bg-yellow-500 text-white rounded"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(album.id)}
+                      className="px-2 py-1 bg-red-500 text-white rounded"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

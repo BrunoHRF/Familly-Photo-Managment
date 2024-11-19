@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 
 interface Photo {
@@ -20,11 +20,10 @@ interface AddPhotoProps {
   selectedAlbum: { id: number; title: string } | null;
 }
 
-const createPhoto = async (newPhoto: Partial<Photo>): Promise<Photo> => {
+const createPhoto = async (newPhoto: FormData): Promise<Photo> => {
   const response = await fetch("http://localhost:3001/api/photos", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newPhoto),
+    body: newPhoto,
   });
   if (!response.ok) {
     throw new Error("Failed to create photo");
@@ -49,6 +48,7 @@ export default function AddPhoto({
   const [newPhotoTitle, setNewPhotoTitle] = useState("");
   const [newPhotoDescription, setNewPhotoDescription] = useState("");
   const [newPhotoAlbum, setNewPhotoAlbum] = useState("");
+  const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
   const queryClient = useQueryClient();
 
   const {
@@ -76,6 +76,7 @@ export default function AddPhoto({
       setNewPhotoTitle("");
       setNewPhotoDescription("");
       setNewPhotoAlbum("");
+      setNewPhotoFile(null);
     },
     onError: (error: Error) => {
       console.error("Failed to add photo:", error);
@@ -84,13 +85,21 @@ export default function AddPhoto({
 
   const handleAddPhoto = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPhotoAlbum) return;
-    createPhotoMutation.mutate({
-      title: newPhotoTitle,
-      albumId: parseInt(newPhotoAlbum),
-      url: "/placeholder.svg?height=200&width=200",
-      thumbnailUrl: "/placeholder.svg?height=100&width=100",
-    });
+    if (!newPhotoAlbum || !newPhotoFile) return;
+
+    const formData = new FormData();
+    formData.append("title", newPhotoTitle);
+    formData.append("description", newPhotoDescription);
+    formData.append("albumId", newPhotoAlbum);
+    formData.append("photo", newPhotoFile);
+
+    createPhotoMutation.mutate(formData);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setNewPhotoFile(e.target.files[0]);
+    }
   };
 
   if (!selectedUserId) return <div>Please select a user first.</div>;
@@ -120,6 +129,7 @@ export default function AddPhoto({
           value={newPhotoAlbum}
           onChange={(e) => setNewPhotoAlbum(e.target.value)}
           className="w-full p-2 border rounded"
+          required
         >
           <option value="">Select album</option>
           {albums?.map((album) => (
@@ -128,6 +138,13 @@ export default function AddPhoto({
             </option>
           ))}
         </select>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          required
+          className="w-full p-2 border rounded"
+        />
         <button
           type="submit"
           className="px-4 py-2 bg-blue-500 text-white rounded"
