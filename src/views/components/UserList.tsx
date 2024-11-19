@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 
 interface User {
@@ -51,15 +51,31 @@ export default function UserList({ onUserSelect }: UserListProps) {
   } = useQuery<User[], Error>("users", fetchUsers);
 
   const deleteMutation = useMutation(deleteUser, {
-    onSuccess: () => {
-      queryClient.invalidateQueries("users");
+    onSuccess: (_, deletedUserId) => {
+      queryClient.setQueryData<User[]>("users", (oldData) => {
+        return oldData
+          ? oldData.filter((user) => user.id !== deletedUserId)
+          : [];
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to delete user:", error);
     },
   });
 
   const updateMutation = useMutation(updateUser, {
-    onSuccess: () => {
-      queryClient.invalidateQueries("users");
+    onSuccess: (updatedUser) => {
+      queryClient.setQueryData<User[]>("users", (oldData) => {
+        return oldData
+          ? oldData.map((user) =>
+              user.id === updatedUser.id ? updatedUser : user
+            )
+          : [];
+      });
       setEditingUser(null);
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update user:", error);
     },
   });
 

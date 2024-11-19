@@ -22,15 +22,6 @@ export const fetchAlbums = async (userId: number): Promise<Album[]> => {
   return response.json();
 };
 
-export const deleteAlbum = async (albumId: number): Promise<void> => {
-  const response = await fetch(`http://localhost:3001/api/albums/${albumId}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to delete album");
-  }
-};
-
 export const updateAlbum = async (album: Album): Promise<Album> => {
   const response = await fetch(`http://localhost:3001/api/albums/${album.id}`, {
     method: "PUT",
@@ -41,6 +32,15 @@ export const updateAlbum = async (album: Album): Promise<Album> => {
     throw new Error("Failed to update album");
   }
   return response.json();
+};
+
+export const deleteAlbum = async (albumId: number): Promise<void> => {
+  const response = await fetch(`http://localhost:3001/api/albums/${albumId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete album");
+  }
 };
 
 export default function AlbumList({ userId, onAlbumSelect }: AlbumListProps) {
@@ -54,16 +54,32 @@ export default function AlbumList({ userId, onAlbumSelect }: AlbumListProps) {
     enabled: !!userId,
   });
 
-  const deleteMutation = useMutation(deleteAlbum, {
-    onSuccess: () => {
-      queryClient.invalidateQueries(["albums", userId]);
+  const updateMutation = useMutation(updateAlbum, {
+    onSuccess: (updatedAlbum) => {
+      queryClient.setQueryData<Album[]>(["albums", userId], (oldData) => {
+        return oldData
+          ? oldData.map((album) =>
+              album.id === updatedAlbum.id ? updatedAlbum : album
+            )
+          : [];
+      });
+      setEditingAlbum(null);
+    },
+    onError: (error: Error) => {
+      console.error("Failed to update album:", error);
     },
   });
 
-  const updateMutation = useMutation(updateAlbum, {
-    onSuccess: () => {
-      queryClient.invalidateQueries(["albums", userId]);
-      setEditingAlbum(null);
+  const deleteMutation = useMutation(deleteAlbum, {
+    onSuccess: (_, deletedAlbumId) => {
+      queryClient.setQueryData<Album[]>(["albums", userId], (oldData) => {
+        return oldData
+          ? oldData.filter((album) => album.id !== deletedAlbumId)
+          : [];
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to delete album:", error);
     },
   });
 
@@ -74,16 +90,16 @@ export default function AlbumList({ userId, onAlbumSelect }: AlbumListProps) {
     setEditingAlbum(album);
   };
 
-  const handleDelete = (albumId: number) => {
-    if (window.confirm("Are you sure you want to delete this album?")) {
-      deleteMutation.mutate(albumId);
-    }
-  };
-
   const handleUpdate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (editingAlbum) {
       updateMutation.mutate(editingAlbum);
+    }
+  };
+
+  const handleDelete = (albumId: number) => {
+    if (window.confirm("Are you sure you want to delete this album?")) {
+      deleteMutation.mutate(albumId);
     }
   };
 
@@ -92,7 +108,7 @@ export default function AlbumList({ userId, onAlbumSelect }: AlbumListProps) {
       <h2 className="text-xl font-semibold mb-2">Albums for User {userId}</h2>
       {albums && albums.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {albums?.map((album) => (
+          {albums.map((album) => (
             <div key={album.id} className="border p-4 rounded-lg shadow-sm">
               {editingAlbum && editingAlbum.id === album.id ? (
                 <form onSubmit={handleUpdate} className="space-y-2">

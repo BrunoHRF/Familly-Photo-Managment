@@ -135,6 +135,46 @@ app.get("/api/albums/:albumId/photos", async (req, res) => {
   }
 });
 
+app.put("/api/albums/:albumId", async (req, res) => {
+  try {
+    const { albumId } = req.params;
+    const response = await fetch(`${BASE_URL}/albums/${albumId}`, {
+      method: "PUT",
+      body: JSON.stringify(req.body),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data: unknown = await response.json();
+
+    if (typeof data === "object" && data !== null && "id" in data) {
+      res.json(data);
+    } else {
+      throw new Error("Invalid data format for updated album");
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update album" });
+  }
+});
+
+app.put("/api/users/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const response = await fetch(`${BASE_URL}/users/${userId}`, {
+      method: "PUT",
+      body: JSON.stringify(req.body),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data: unknown = await response.json();
+
+    if (typeof data === "object" && data !== null && "id" in data) {
+      res.json(data);
+    } else {
+      throw new Error("Invalid data format for updated user");
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
 app.post("/api/photos", async (req, res) => {
   try {
     const response = await fetch(`${BASE_URL}/photos`, {
@@ -170,6 +210,42 @@ app.post("/api/albums", async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ error: "Failed to create album" });
+  }
+});
+
+app.delete("/api/users/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const response = await fetch(`${BASE_URL}/users/${userId}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      res.status(204).send();
+    } else {
+      throw new Error("Failed to delete user");
+    }
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ error: "Failed to delete user" });
+  }
+});
+
+app.delete("/api/albums/:albumId", async (req, res) => {
+  try {
+    const { albumId } = req.params;
+    const response = await fetch(`${BASE_URL}/albums/${albumId}`, {
+      method: "DELETE",
+    });
+
+    if (response.ok) {
+      res.status(204).send();
+    } else {
+      throw new Error("Failed to delete album");
+    }
+  } catch (error) {
+    console.error("Error deleting album:", error);
+    res.status(500).json({ error: "Failed to delete album" });
   }
 });
 
