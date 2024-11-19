@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import { useQuery } from "react-query";
 
 interface Photo {
@@ -14,6 +13,10 @@ interface Album {
   title: string;
 }
 
+interface PhotoListProps {
+  selectedAlbum: Album;
+}
+
 const fetchPhotos = async (albumId: number): Promise<Photo[]> => {
   const response = await fetch(
     `http://localhost:3001/api/albums/${albumId}/photos`
@@ -24,20 +27,17 @@ const fetchPhotos = async (albumId: number): Promise<Photo[]> => {
   return response.json();
 };
 
-export default function PhotoList() {
-  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
-
+export default function PhotoList({ selectedAlbum }: PhotoListProps) {
   const {
     data: photos,
     isLoading,
     error,
   } = useQuery<Photo[], Error>(
-    ["photos", selectedAlbum?.id],
-    () => fetchPhotos(selectedAlbum?.id ?? 0),
+    ["photos", selectedAlbum.id],
+    () => fetchPhotos(selectedAlbum.id),
     { enabled: !!selectedAlbum }
   );
 
-  if (!selectedAlbum) return <p>Please select an album first.</p>;
   if (isLoading) return <div>Loading photos...</div>;
   if (error) return <div>Error fetching photos: {error.message}</div>;
 

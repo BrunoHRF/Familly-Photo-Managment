@@ -9,6 +9,22 @@ const queryClient = new QueryClient();
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("users");
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedAlbum, setSelectedAlbum] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
+
+  const handleUserSelect = (userId: number) => {
+    setSelectedUserId(userId);
+    setSelectedAlbum(null);
+    setActiveTab("albums");
+  };
+
+  const handleAlbumSelect = (albumId: number, albumTitle: string) => {
+    setSelectedAlbum({ id: albumId, title: albumTitle });
+    setActiveTab("photos");
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -51,9 +67,16 @@ export default function App() {
           </button>
         </div>
 
-        {activeTab === "users" && <UserList />}
-        {activeTab === "albums" && <AlbumList />}
-        {activeTab === "photos" && <PhotoList />}
+        {activeTab === "users" && <UserList onUserSelect={handleUserSelect} />}
+        {activeTab === "albums" && selectedUserId !== null && (
+          <AlbumList
+            userId={selectedUserId}
+            onAlbumSelect={handleAlbumSelect}
+          />
+        )}
+        {activeTab === "photos" && selectedAlbum !== null && (
+          <PhotoList selectedAlbum={selectedAlbum} />
+        )}
         {activeTab === "add-photo" && <AddPhoto />}
       </div>
     </QueryClientProvider>
