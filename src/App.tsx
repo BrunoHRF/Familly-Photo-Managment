@@ -77,7 +77,12 @@ export default function App() {
         {activeTab === "photos" && selectedAlbum !== null && (
           <PhotoList selectedAlbum={selectedAlbum} />
         )}
-        {activeTab === "add-photo" && <AddPhoto />}
+        {activeTab === "add-photo" && (
+          <AddPhoto
+            selectedUserId={selectedUserId}
+            selectedAlbum={selectedAlbum}
+          />
+        )}
       </div>
     </QueryClientProvider>
   );

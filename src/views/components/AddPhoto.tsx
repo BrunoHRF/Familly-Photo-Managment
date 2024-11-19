@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useMutation, useQueryClient } from "react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 
 interface Photo {
   id: number;
@@ -12,6 +12,12 @@ interface Photo {
 interface Album {
   id: number;
   title: string;
+  userId: number;
+}
+
+interface AddPhotoProps {
+  selectedUserId: number | null;
+  selectedAlbum: { id: number; title: string } | null;
 }
 
 const createPhoto = async (newPhoto: Partial<Photo>): Promise<Photo> => {
@@ -26,11 +32,40 @@ const createPhoto = async (newPhoto: Partial<Photo>): Promise<Photo> => {
   return response.json();
 };
 
-export default function AddPhoto() {
+const fetchAlbums = async (userId: number): Promise<Album[]> => {
+  const response = await fetch(
+    `http://localhost:3001/api/users/${userId}/albums`
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch albums");
+  }
+  return response.json();
+};
+
+export default function AddPhoto({
+  selectedUserId,
+  selectedAlbum,
+}: AddPhotoProps) {
   const [newPhotoTitle, setNewPhotoTitle] = useState("");
   const [newPhotoDescription, setNewPhotoDescription] = useState("");
   const [newPhotoAlbum, setNewPhotoAlbum] = useState("");
   const queryClient = useQueryClient();
+
+  const {
+    data: albums,
+    isLoading: isLoadingAlbums,
+    error: albumsError,
+  } = useQuery<Album[], Error>(
+    ["albums", selectedUserId],
+    () => fetchAlbums(selectedUserId!),
+    { enabled: !!selectedUserId }
+  );
+
+  useEffect(() => {
+    if (selectedAlbum) {
+      setNewPhotoAlbum(selectedAlbum.id.toString());
+    }
+  }, [selectedAlbum]);
 
   const createPhotoMutation = useMutation(createPhoto, {
     onSuccess: (newPhoto) => {
@@ -58,6 +93,11 @@ export default function AddPhoto() {
     });
   };
 
+  if (!selectedUserId) return <div>Please select a user first.</div>;
+  if (isLoadingAlbums) return <div>Loading albums...</div>;
+  if (albumsError)
+    return <div>Error fetching albums: {albumsError.message}</div>;
+
   return (
     <div>
       <h2 className="text-xl font-semibold mb-2">Add New Photo</h2>
@@ -82,7 +122,11 @@ export default function AddPhoto() {
           className="w-full p-2 border rounded"
         >
           <option value="">Select album</option>
-          {/* You would need to fetch albums here or pass them as props */}
+          {albums?.map((album) => (
+            <option key={album.id} value={album.id.toString()}>
+              {album.title}
+            </option>
+          ))}
         </select>
         <button
           type="submit"
